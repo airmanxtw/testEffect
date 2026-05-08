@@ -10,15 +10,9 @@ const prog = Effect.runSyncExit(add(10,10));
 Exit.match(prog,{
   onSuccess: (result) => console.log("Result:", result),
   onFailure: (error) => {
-    Cause.match(error,{
-      onEmpty: () => console.error("Empty cause"),
-      onFail: (err) => () => { console.error("Empty cause"); },
-      onDie: (die) => () => { console.error("Empty cause"); },
-      onInterrupt: (fiberId) => () => { console.error("Empty cause"); },
-      onSequential: (left, right) => () => { console.error("Empty cause"); },
-      onParallel: (left, right) => () => { console.error("Empty cause"); }
-    })
-  }
+    if (Cause.isFailType(error)) {
+      console.log("Error:", error.error.message);
+    }
   }
 })
 
