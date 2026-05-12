@@ -4,6 +4,7 @@
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
-    "effect": "npm:effect@3.21.2"
+    "effect": "npm:effect@3.21.2",
+    "axios": "npm:axios@1.16.0"
   }
 }
