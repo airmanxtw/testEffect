@@ -4,6 +4,8 @@ import {Effect,Exit,Cause} from "effect";
 import axios from "axios";
 import type {AxiosError} from "axios";
 import { pipe } from "effect/Function";
+import { validateEither } from "effect/Schema";
+import { get } from "node:http";
 
 
 type User ={
@@ -12,41 +14,85 @@ type User ={
   username:string;
 }
 
-// 使用正則表達式驗證 email 格式
-const isEmail = (email:string) => Effect.if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),{
+// 用正則表達式驗證 email 格式
+
+const validateEmail = (email:string) =>
+Effect.if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),{
   onTrue: () => Effect.succeed(email),
-  onFalse: () => Effect.fail(new Error(`Invalid email format: ${email}`))
+  onFalse: () => Effect.fail(`Invalid email format: ${email}`)
 })
 
-const getUser = (id:number) => Effect.tryPromise({
-  try: () => axios.get(`https://jsonplaceholder.typicode.com/users/${id}`).then(res => res.data as User),
-  catch: (error) => new Error(`Failed to fetch user with id ${id}: ${(error as AxiosError).message}`)
+
+
+const getUserByid = (id:number) =>
+  Effect.tryPromise({
+    try: () => axios.get<User>(`https://xfakestoreapi.com/users/${id}`).then(res => res.data),
+    catch: (error:unknown) => `error msg: ${(error as AxiosError).message}`
+  })
+
+
+
+const validateUserEamil = pipe(
+                1,
+               
+                (id)=>getUserByid(id), 
+                (user)=>Effect.flatMap(user,u=>validateEmail(u.email))
+              )
+
+const validateUserEamil0 = pipe(
+                1,
+                getUserByid, 
+                Effect.flatMap(u=>validateEmail(u.email))
+              ) 
+              
+              
+const getdata = (token:string) =>(id:number) =>   id;
+
+const getdataBytoken = getdata("token");
+
+
+
+getdataBytoken(1);
+
+
+
+const validateUserEamil2 = Effect.gen(function*(){
+  const user = yield* getUserByid(1);
+  const email = user.email;
+  const validEmail = yield* validateEmail(email);
+  return validEmail;
 })
 
-const updateUser = (newData:User) => Effect.tryPromise({
-  try: () => axios.put(`https://jsonplaceholder.typicode.com/users/${newData.id}`, newData).then(res => res.data as User),
-  catch: (error) => new Error(`Failed to update user with id ${newData.id}: ${(error as AxiosError).message}`)
+const validateUserEamil3 = getUserByid(1).pipe(Effect.flatMap(user=>validateEmail(user.email)))
+
+const validateUserEamilProg = Effect.runPromiseExit(validateUserEamil);
+
+const validateUserEamilProg2 = Effect.runPromise(validateUserEamil);
+
+validateUserEamilProg2
+.then(email=>console.log(`Valid email: ${email}`))
+.catch(error=>console.error(`Error: ${Cause.squash(error) as string}`))
+
+console.log("Program start");
+
+const run = async () =>{
+
+  Exit.match(await validateUserEamilProg,{
+  onSuccess:(email)=>console.log(`Valid email: ${email}`),
+  onFailure:(error)=>console.error(`Error: ${Cause.squash(error) as string}`)
+ 
 })
+}
 
-const changeUserEmail = (newMail:string) => (data:User) => ({...data, email: newMail} as User);
+run();
 
-const getUserAndChangeEmail = (id:number, newMail:string) =>
-  pipe(
-    getUser(id),
-    Effect.map(changeUserEmail(newMail)),
-    Effect.flatMap(updateUser)
-  )
 
-const getUserAndChangeEmailWithValidation = (id:number, newMail:string) => Effect.gen(function* (){
-  const user = yield* getUser(id);
-  const validEmail = yield* isEmail(newMail);
-  const updatedUser = changeUserEmail(validEmail)(user);
-  return yield* updateUser(updatedUser);
-});
+console.log("Program end");
+  
 
-const prog = Effect.runPromiseExit(getUserAndChangeEmailWithValidation(1,'abc'));
 
-Exit.match(await prog,{
-  onSuccess: (user) => console.log("User fetched successfully:", user),
-  onFailure:(error)=> console.log("Error fetching user:",(Cause.squash(error) as Error).message )
-})
+
+  
+
+// effectful function
+
